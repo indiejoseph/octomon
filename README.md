@@ -118,3 +118,4 @@ Apple requires web applications on iOS to be installed to the Home Screen to rec
 ## 📄 License
 
 MIT License &copy; 2026 Joseph Cheng
+
