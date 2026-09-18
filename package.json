@@ -1,0 +1,32 @@
+{
+  "name": "octopus-monitor",
+  "version": "1.0.0",
+  "description": "Octopus Energy Agile tariff rate monitor with Cloudflare Workers Web Push notifications",
+  "type": "module",
+  "scripts": {
+    "dev:worker": "wrangler dev",
+    "dev:client": "vite",
+    "dev": "vite",
+    "build:client": "vite build",
+    "build": "vite build",
+    "deploy": "vite build && wrangler deploy"
+  },
+  "dependencies": {
+    "lucide-react": "^1.16.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.1",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260317.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "wrangler": "^4.134.0"
+  }
+}

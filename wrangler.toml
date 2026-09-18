@@ -1,0 +1,23 @@
+name = "octopus-monitor"
+main = "src/worker/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom domain routing
+routes = [
+  { pattern = "octomon.josephcheng.me", custom_domain = true }
+]
+
+# Serve built frontend client as static assets
+assets = { directory = "./dist/client", binding = "ASSETS", not_found_handling = "single-page-application" }
+
+# KV namespace for user settings, notification subscriptions, and cached rates
+[[kv_namespaces]]
+binding = "OCTOPUS_KV"
+id = "b8218a6378e34a60bbcbf61204c3ed48"
+
+# Cron triggers:
+# 1) Every 15 minutes (:00, :15, :30, :45) - monitor current rate transitions for plunge / negative rate alerts
+# 2) 16:05 daily (UTC / UK time) - check when tomorrow's Agile rates drop and alert if tomorrow has negative slots
+[triggers]
+crons = ["*/15 * * * *", "5 16 * * *"]
