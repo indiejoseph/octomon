@@ -65,8 +65,9 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
     }
   };
 
+  const [countdown, setCountdown] = useState<number | null>(null);
+
   const handleSendTest = async () => {
-    setLoading(true);
     setErrorMsg(null);
     setTestResult(null);
 
@@ -76,13 +77,23 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
       if (!sub) {
         throw new Error('Please enable push notifications first.');
       }
+
+      // 3-second countdown so the user has time to lock their phone screen
+      for (let sec = 3; sec > 0; sec--) {
+        setCountdown(sec);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      setCountdown(null);
+      setLoading(true);
+
       const res = await triggerTestPush(sub);
       if (res.ok) {
-        setTestResult(`Test notification sent! Gateway responded HTTP ${res.status || 201}. Check your system notifications.`);
+        setTestResult(`Test notification sent! Gateway responded HTTP ${res.status || 201}. Check your lock screen / system notifications.`);
       } else {
         setErrorMsg(`Gateway error HTTP ${res.status || 'unknown'}: ${res.statusText || 'Push service rejected request'}`);
       }
     } catch (err: any) {
+      setCountdown(null);
       setErrorMsg(err.message || 'Failed to send test push');
     } finally {
       setLoading(false);
@@ -194,11 +205,10 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
           <button
             onClick={handleTogglePush}
             disabled={loading}
-            className={`flex-1 sm:flex-none px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              isPushSubscribed
+            className={`flex-1 sm:flex-none px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${isPushSubscribed
                 ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
                 : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20'
-            }`}
+              }`}
           >
             {isPushSubscribed ? (
               <>
@@ -214,10 +224,14 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
           {isPushSubscribed && (
             <button
               onClick={handleSendTest}
-              disabled={loading}
-              className="px-3 py-2 sm:py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              disabled={loading || countdown !== null}
+              className={`px-3 py-2 sm:py-2.5 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${countdown !== null
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                }`}
             >
-              <Send className="w-3.5 h-3.5" /> Test
+              <Send className="w-3.5 h-3.5" />
+              {countdown !== null ? `Lock screen in ${countdown}s...` : 'Test'}
             </button>
           )}
         </div>
