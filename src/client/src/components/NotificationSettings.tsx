@@ -181,78 +181,80 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
       )}
 
       {/* Push Notification Toggle Section */}
-      <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl sm:rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h4 className="text-xs sm:text-sm font-bold text-white">Browser Push Notifications</h4>
-            {isPushSubscribed ? (
-              <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-emerald-400 font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <CheckCircle2 className="w-3 h-3" /> Active
-              </span>
-            ) : (
-              <span className="text-[10px] sm:text-[11px] text-slate-500 px-2 py-0.5 rounded-full bg-slate-800">
-                Disabled
-              </span>
-            )}
+      <div className="bg-slate-950/60 border border-slate-800/60 rounded-xl sm:rounded-2xl p-4 sm:p-5 flex flex-col gap-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-xs sm:text-sm font-bold text-white">Browser Push Notifications</h4>
+              {isPushSubscribed ? (
+                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-emerald-400 font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                  <CheckCircle2 className="w-3 h-3" /> Active
+                </span>
+              ) : (
+                <span className="text-[10px] sm:text-[11px] text-slate-500 px-2 py-0.5 rounded-full bg-slate-800 shrink-0">
+                  Disabled
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
+              Receives OS-level push notifications via your browser or phone when tomorrow has negative
+              slots (released ~4 PM) or when a plunge rate starts.
+            </p>
           </div>
-          <p className="text-[11px] sm:text-xs text-slate-400 mt-1 max-w-xl">
-            Receives OS-level push notifications via your browser or phone when tomorrow has negative
-            slots (released ~4 PM) or when a plunge rate starts.
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
-          <button
-            onClick={handleTogglePush}
-            disabled={loading}
-            className={`flex-1 sm:flex-none px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${isPushSubscribed
-                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20'
-              }`}
-          >
-            {isPushSubscribed ? (
-              <>
-                <BellOff className="w-3.5 h-3.5" /> Disable
-              </>
-            ) : (
-              <>
-                <Bell className="w-3.5 h-3.5" /> Enable Push
-              </>
-            )}
-          </button>
-
-          {isPushSubscribed && (
+          <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0 flex-wrap">
             <button
-              onClick={handleSendTest}
-              disabled={loading || countdown !== null}
-              className={`px-3 py-2 sm:py-2.5 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${countdown !== null
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+              onClick={handleTogglePush}
+              disabled={loading}
+              className={`flex-1 sm:flex-none px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${isPushSubscribed
+                  ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20'
                 }`}
             >
-              <Send className="w-3.5 h-3.5" />
-              {countdown !== null ? `Lock screen in ${countdown}s...` : 'Test'}
+              {isPushSubscribed ? (
+                <>
+                  <BellOff className="w-3.5 h-3.5" /> Disable
+                </>
+              ) : (
+                <>
+                  <Bell className="w-3.5 h-3.5" /> Enable Push
+                </>
+              )}
             </button>
-          )}
-        </div>
-      </div>
 
-      {testResult && (
-        <div className="mt-3 p-2.5 bg-emerald-950/30 border border-emerald-800/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{testResult}</span>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div className="mt-3 p-3 bg-rose-950/40 border border-rose-800/50 rounded-xl text-xs text-rose-300 flex items-start gap-2.5">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div className="min-w-0">
-            <span className="font-semibold block mb-0.5">Notification Setup Note:</span>
-            <span>{errorMsg}</span>
+            {isPushSubscribed && (
+              <button
+                onClick={handleSendTest}
+                disabled={loading || countdown !== null}
+                className={`px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${countdown !== null
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                  }`}
+              >
+                <Send className="w-3.5 h-3.5" />
+                {countdown !== null ? `Lock screen in ${countdown}s...` : 'Test'}
+              </button>
+            )}
           </div>
         </div>
-      )}
+
+        {testResult && (
+          <div className="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-xl text-xs text-emerald-300 flex items-start gap-2.5 break-words">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+            <span className="min-w-0 leading-relaxed">{testResult}</span>
+          </div>
+        )}
+
+        {errorMsg && (
+          <div className="p-3 bg-rose-950/40 border border-rose-800/50 rounded-xl text-xs text-rose-300 flex items-start gap-2.5 break-words">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+            <div className="min-w-0 leading-relaxed">
+              <span className="font-semibold block mb-0.5">Notification Setup Note:</span>
+              <span>{errorMsg}</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
