@@ -9,31 +9,39 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  let data = {
-    title: '🐙 Octopus Agile Rate Alert',
-    body: 'Energy rates have changed!',
-    url: '/'
-  };
+  let title = '🐙 Octopus Agile Rate Alert';
+  let body = 'Energy rates have changed!';
+  let url = '/';
 
   if (event.data) {
     try {
-      data = event.data.json();
+      const parsed = event.data.json();
+      if (parsed.title) title = parsed.title;
+      if (parsed.body) body = parsed.body;
+      if (parsed.url) url = parsed.url;
     } catch {
-      data.body = event.data.text();
+      try {
+        const text = event.data.text();
+        if (text) body = text;
+      } catch (e) {
+        console.error('Error reading push data:', e);
+      }
     }
   }
 
-  // Cross-browser & iOS Safari compatible options (avoid vibrating or actions which fail on iOS)
   const options = {
-    body: data.body,
+    body: body,
     icon: '/apple-touch-icon.png',
-    data: {
-      url: data.url || '/'
-    }
+    badge: '/apple-touch-icon.png',
+    data: { url: url }
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(title, options).catch((err) => {
+      console.error('Failed to show notification:', err);
+      // Fallback with minimal options
+      return self.registration.showNotification(title, { body: body });
+    })
   );
 });
 

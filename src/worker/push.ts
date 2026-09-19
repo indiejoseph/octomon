@@ -144,8 +144,8 @@ export async function encryptPushPayload(
   // 4. Generate random 16-byte salt
   const salt = crypto.getRandomValues(new Uint8Array(16));
 
-  // 5. HKDF calculations for pseudo-random keys (PRK) and derivation
-  // PRK_key = HMAC-SHA-256(auth, shared_secret)
+  // 5. RFC 8291 Section 3.2 HKDF sequence:
+  // Step 5.1: prk1 = HMAC-SHA-256(key=auth, data=sharedSecret)
   const authKey = await crypto.subtle.importKey(
     'raw',
     auth.buffer as ArrayBuffer,
@@ -153,75 +153,60 @@ export async function encryptPushPayload(
     false,
     ['sign']
   );
-  const prkKey = await crypto.subtle.sign('HMAC', authKey, sharedSecret);
+  const prk1 = await crypto.subtle.sign('HMAC', authKey, sharedSecret);
 
-  // Derive PRK
-  const prkImported = await crypto.subtle.importKey(
+  // Step 5.2: secret = HMAC-SHA-256(key=prk1, data="WebPush: info\0" || userPub || localPub || 0x01)
+  const prk1Key = await crypto.subtle.importKey(
     'raw',
-    prkKey,
-    { name: 'HKDF' },
+    prk1,
+    { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['deriveBits']
+    ['sign']
   );
-
-  // Info for IKM: "WebPush: info\0" || userPublicKey || localPublicKey
   const infoPrefix = new TextEncoder().encode('WebPush: info\0');
-  const ikmInfo = new Uint8Array(infoPrefix.length + p256dh.length + localPublicKeyRaw.length);
-  ikmInfo.set(infoPrefix, 0);
-  ikmInfo.set(p256dh, infoPrefix.length);
-  ikmInfo.set(localPublicKeyRaw, infoPrefix.length + p256dh.length);
+  const info1 = new Uint8Array(infoPrefix.length + p256dh.length + localPublicKeyRaw.length + 1);
+  info1.set(infoPrefix, 0);
+  info1.set(p256dh, infoPrefix.length);
+  info1.set(localPublicKeyRaw, infoPrefix.length + p256dh.length);
+  info1[info1.length - 1] = 1;
+  const secret = await crypto.subtle.sign('HMAC', prk1Key, info1);
 
-  const ikm = await crypto.subtle.deriveBits(
-    {
-      name: 'HKDF',
-      hash: 'SHA-256',
-      salt,
-      info: ikmInfo
-    },
-    prkImported,
-    256
-  );
-
-  // Derive CEK (Content Encryption Key) and Nonce from IKM
-  const ikmImported = await crypto.subtle.importKey(
+  // Step 5.3: prk2 = HMAC-SHA-256(key=salt, data=secret)
+  const saltKey = await crypto.subtle.importKey(
     'raw',
-    ikm,
-    { name: 'HKDF' },
+    salt,
+    { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['deriveBits', 'deriveKey']
+    ['sign']
   );
+  const prk2 = await crypto.subtle.sign('HMAC', saltKey, secret);
 
-  // CEK Info: "Content-Encoding: aes128gcm\0"
-  const cekInfo = new TextEncoder().encode('Content-Encoding: aes128gcm\0');
-  const cek = await crypto.subtle.deriveKey(
-    {
-      name: 'HKDF',
-      hash: 'SHA-256',
-      salt,
-      info: cekInfo
-    },
-    ikmImported,
-    { name: 'AES-GCM', length: 128 },
+  // Step 5.4: CEK = HMAC-SHA-256(key=prk2, data="Content-Encoding: aes128gcm\0" || 0x01).slice(0, 16)
+  const prk2Key = await crypto.subtle.importKey(
+    'raw',
+    prk2,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const cekInfo = new TextEncoder().encode('Content-Encoding: aes128gcm\0\x01');
+  const keyFull = await crypto.subtle.sign('HMAC', prk2Key, cekInfo);
+  const key = new Uint8Array(keyFull).slice(0, 16);
+
+  // Step 5.5: Nonce = HMAC-SHA-256(key=prk2, data="Content-Encoding: nonce\0" || 0x01).slice(0, 12)
+  const nonceInfo = new TextEncoder().encode('Content-Encoding: nonce\0\x01');
+  const nonceFull = await crypto.subtle.sign('HMAC', prk2Key, nonceInfo);
+  const nonce = new Uint8Array(nonceFull).slice(0, 12);
+
+  // 6. Format payload according to aes128gcm (RFC 8188)
+  const aesKey = await crypto.subtle.importKey(
+    'raw',
+    key,
+    { name: 'AES-GCM' },
     false,
     ['encrypt']
   );
 
-  // Nonce Info: "Content-Encoding: nonce\0"
-  const nonceInfo = new TextEncoder().encode('Content-Encoding: nonce\0');
-  const nonce = new Uint8Array(
-    await crypto.subtle.deriveBits(
-      {
-        name: 'HKDF',
-        hash: 'SHA-256',
-        salt,
-        info: nonceInfo
-      },
-      ikmImported,
-      96 // 12 bytes
-    )
-  );
-
-  // 6. Format payload according to aes128gcm (RFC 8188)
   // Record: plaintext + \x02 (delimiter)
   const payloadBytes = new TextEncoder().encode(payloadText);
   const record = new Uint8Array(payloadBytes.length + 1);
@@ -231,7 +216,7 @@ export async function encryptPushPayload(
   const encryptedRecord = new Uint8Array(
     await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv: nonce, tagLength: 128 },
-      cek,
+      aesKey,
       record
     )
   );
