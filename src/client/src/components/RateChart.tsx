@@ -9,6 +9,7 @@ import {
   ReferenceLine,
   Cell
 } from 'recharts';
+import { Clock } from 'lucide-react';
 import { ProcessedRate } from '../types';
 
 interface RateChartProps {
@@ -17,6 +18,7 @@ interface RateChartProps {
   selectedDay: 'today' | 'tomorrow';
   onSelectDay: (day: 'today' | 'tomorrow') => void;
   hasTomorrow: boolean;
+  currentSlot?: ProcessedRate | null;
 }
 
 export const RateChart: React.FC<RateChartProps> = ({
@@ -24,15 +26,20 @@ export const RateChart: React.FC<RateChartProps> = ({
   threshold,
   selectedDay,
   onSelectDay,
-  hasTomorrow
+  hasTomorrow,
+  currentSlot
 }) => {
+  // Determine if current playhead belongs on the active day view
+  const currentSlotTime = selectedDay === 'today' && currentSlot?.timeLabel ? currentSlot.timeLabel : null;
+
   const chartData = rates.map((r) => ({
     time: r.timeLabel,
     price: r.value_inc_vat,
     isNegative: r.isNegative,
     isPeak: r.isPeak,
     isCheap: r.isCheap,
-    validFrom: r.valid_from
+    validFrom: r.valid_from,
+    isCurrent: r.valid_from === currentSlot?.valid_from
   }));
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -54,6 +61,11 @@ export const RateChart: React.FC<RateChartProps> = ({
             </span>
             <span className="text-[10px] text-slate-400">/ kWh</span>
           </div>
+          {data.isCurrent && (
+            <p className="text-[10px] text-rose-400 font-bold mt-0.5 flex items-center gap-1">
+              <Clock className="w-3 h-3 animate-pulse" /> Current Slot (Now)
+            </p>
+          )}
           {data.isNegative && (
             <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">
               🎉 Negative (Get paid)
@@ -74,7 +86,15 @@ export const RateChart: React.FC<RateChartProps> = ({
     <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 backdrop-blur-sm">
       <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-sm sm:text-base font-bold text-white">Half-Hourly Pricing Curve</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm sm:text-base font-bold text-white">Half-Hourly Pricing Curve</h3>
+            {currentSlotTime && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />
+                Playhead: {currentSlotTime}
+              </span>
+            )}
+          </div>
           <p className="text-[11px] sm:text-xs text-slate-400">
             48 half-hour slots (p/kWh inc. VAT)
           </p>
@@ -145,6 +165,24 @@ export const RateChart: React.FC<RateChartProps> = ({
                   strokeDasharray="3 3"
                 />
               )}
+
+              {/* Current Time Playhead Vertical Reference Line */}
+              {currentSlotTime && (
+                <ReferenceLine
+                  x={currentSlotTime}
+                  stroke="#f43f5e"
+                  strokeWidth={2}
+                  strokeDasharray="2 2"
+                  label={{
+                    value: 'NOW',
+                    position: 'top',
+                    fill: '#f43f5e',
+                    fontSize: 9,
+                    fontWeight: 'bold'
+                  }}
+                />
+              )}
+
               <Bar dataKey="price" radius={[3, 3, 0, 0]}>
                 {chartData.map((entry, index) => {
                   let fillColor = '#3b82f6';
@@ -158,7 +196,14 @@ export const RateChart: React.FC<RateChartProps> = ({
                     fillColor = '#ef4444';
                   }
 
-                  return <Cell key={`cell-${index}`} fill={fillColor} />;
+                  return (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={fillColor}
+                      stroke={entry.isCurrent ? '#f43f5e' : undefined}
+                      strokeWidth={entry.isCurrent ? 2 : 0}
+                    />
+                  );
                 })}
               </Bar>
             </BarChart>
@@ -167,6 +212,12 @@ export const RateChart: React.FC<RateChartProps> = ({
       )}
 
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-center gap-2 sm:gap-6 mt-3 pt-3 border-t border-slate-800/60 text-[10px] sm:text-xs text-slate-400">
+        {currentSlotTime && (
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-0.5 bg-rose-500 rounded-full border border-rose-400 shrink-0" />
+            <span className="truncate text-rose-300 font-medium">Current Time (Playhead)</span>
+          </div>
+        )}
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
           <span className="truncate">Negative (Paid)</span>

@@ -191,6 +191,7 @@ export default function App() {
           selectedDay={selectedDay}
           onSelectDay={setSelectedDay}
           hasTomorrow={Boolean(tomorrowAnalysis?.rates?.length)}
+          currentSlot={currentSlot}
         />
 
         {/* Settings & Web Push Notifications */}
